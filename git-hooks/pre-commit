@@ -1,0 +1,13 @@
+#!/bin/bash
+source etkilesim
+
+precommitBaslik="$urtotm_dialogBaslik - pre-commit"
+if ! command -v ceedling &> /dev/null; then
+	mesajGoster hata "$precommitBaslik" "'Ceedling Test Seti' '$PATH' yollarında bulunamadığından pre-commit kancası iptal oldu."
+	exit 1
+fi
+# Ceedling ile birim testlerini tetikle
+ceedling test:all
+testSonucu=$?
+echo Test sonucu $testSonucu
+exit $testSonucu

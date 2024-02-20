@@ -1,0 +1,11 @@
+# Sondaki '/' karakteri rsync nin yalnızca bu addaki dizinleri
+# filtrelemesini sağlar
+
+mplab*/
+build/gcov/
+build/logs/
+build/release/cache/
+build/release/dependencies/
+build/release/out/
+build/temp/
+build/test/
