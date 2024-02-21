@@ -25,6 +25,12 @@ if [ ! -d "$ensonSurumDizini" ]; then
     mkdir -p "$ensonSurumDizini" # ürünler dizini yoksa yarat
 fi
 
+# Son ürün üretim sürecini çalıştır
+if ! ceedling project:release release; then
+    echo "Son ürün üretim işlemi başarısız... Ceedling yapılandırmasını kontrol ediniz." &
+    exit 1 # Son ürün üretimi başarısızsa işlemi sürdürme
+fi
+
 # Doxygen belgelendirmesi üret.
 # ATTENTION (Dikkat) Doxyfile Doxygen yapılandırma dosyasında girdi hedefleri göreceli
 # verilmişse doxygen'in mutlaka Doxyfile dosyasının bulunduğu dizinden çalışması gerekir.
@@ -99,11 +105,6 @@ if [[ -e "$belgelendirmeCiktiDizini" ]]; then
         mesajGoster hata "$yayinlaBaslik" "İlgilenmeniz gerekiyor: $belgelendirmeCiktiDizini arşivlenirken bir şeyler ters gitti." &
     fi
     popd
-fi
-
-# Son ürün üretim sürecini çalıştır
-if ! ceedling project:release release; then
-    echo "Son ürün üretim işlemi başarısız... Ceedling yapılandırmasını kontrol ediniz." &
 fi
 
 # Son ürünü önce artifacts dizininde ara...
