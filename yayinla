@@ -25,8 +25,8 @@ if [ ! -d "$ensonSurumDizini" ]; then
     mkdir -p "$ensonSurumDizini" # ürünler dizini yoksa yarat
 fi
 
-# Son ürün üretim sürecini çalıştır
-if ! ceedling project:release release; then
+# Önceki derleme kalıntılarından temizle ve son ürün üretim sürecini çalıştır
+if ! ceedling clobber project:release release; then
     echo "Son ürün üretim işlemi başarısız... Ceedling yapılandırmasını kontrol ediniz." &
     exit 1 # Son ürün üretimi başarısızsa işlemi sürdürme
 fi
@@ -108,10 +108,10 @@ if [[ -e "$belgelendirmeCiktiDizini" ]]; then
 fi
 
 # Son ürünü önce artifacts dizininde ara...
-urun=$(find "${urtotm_projeDizini}/build/artifacts" -type f -name "*.${urtotm_urunUzantisi}")
+urun=$(find "${urtotm_projeDizini}/build/artifacts" -type f -name "*.${urtotm_urunUzantisi}" | head -1 | xargs)
 if [[ -z "$urun" ]]; then
     # artifacts dizininde bulunamadı, release dizininde ara...
-    urun=$(find "${urtotm_projeDizini}/build/release" -type f -name "*.${urtotm_urunUzantisi}")
+    urun=$(find "${urtotm_projeDizini}/build/release" -type f -name "*.${urtotm_urunUzantisi}" | head -1 | xargs)
     # Burada da yoksa hata mesajı göster ve başarısız olarak çık
     if [[ -z "$urun" ]]; then
         mesajGoster hata "$yayinlaBaslik" "Proje dizini içinde ${urtotm_urunUzantisi} dosyası bulunamadığından işlem sürdürülemiyor" &
