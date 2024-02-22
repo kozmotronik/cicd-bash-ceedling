@@ -6,7 +6,7 @@ precommitBaslik="$urtotm_dialogBaslik - pre-commit"
 # İşlenen dosyalarda projeye ait çalıştırılabilir kodlar içerem kaynak dosyası varsa
 # birim testlerini tetikle
 # diff-filter: A (Added), C (Copied), M (Modified)
-if git diff --cached --name-only diff-filter=ACM | \
+if git diff --cached --name-only --diff-filter=ACM | \
 	grep -e'.*\.c' -e'.*\.cpp' -e'.*\.cc' -e'.*\.h' -e'.*\.hpp' &> /dev/null; then
 	# Testleri çalıştırmadan önce Ceedling varlığını yokla
 	if ! command -v ceedling &> /dev/null; then
