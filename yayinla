@@ -68,14 +68,14 @@ else
 fi
 
 # Yayınlanan sürümler dizini
-# Yayınlama aşamasına gelmeden projenin ilgili sürümünün [urtotm_yedekDizini] içerisine görüntüsünün
+# Yayınlama aşamasına gelmeden projenin ilgili sürümünün [urtotm_projeYedeklemeDizini] içerisine görüntüsünün
 # alınmış olması beklenir. Normalde goruntu betiği bu değişkeni, diğer üretim otomasyonu 
 # betiklerine görünür olması için export eder. Ancak yine de yoklamak en iyisi.
 if [[ ! -e $projeGoruntuArsivi ]]; then
 # Bu kabuk oturumunda proje görüntü arşivi tanımlanmamış, burada sürüm numarasına göre ara.
 # Arama kriteri; dosyanın 30 dakika veya daha az bir süre içinde değiştirilmiş olması.
 # find Yedekler -type f -name "hkbmv2.X*v1.0.0*.zip" -mmin -30*
-    projeGoruntuArsivi=$(find "$urtotm_yedekDizini" -type f -name "${urtotm_projeAdi}*${1}*.zip" -mmin -10 | head -1)
+    projeGoruntuArsivi=$(find "$urtotm_projeYedeklemeDizini" -type f -name "${urtotm_projeAdi}*${1}*.zip" -mmin -10 | head -1)
     echo "Proje görüntü arşivi bul: $projeGoruntuArsivi"
     if [[ -z "$projeGoruntuArsivi" ]]; then
         # Bulunan arşiv sürüm numarası içermiyor
@@ -108,13 +108,13 @@ if [[ -e "$belgelendirmeCiktiDizini" ]]; then
 fi
 
 # Son ürünü önce artifacts dizininde ara...
-urun=$(find "${urtotm_projeDizini}/build/artifacts" -type f -name "*.${urtotm_urunUzantisi}" | head -1 | xargs)
+urun=$(find "${urtotm_projeDizini}/build/artifacts" -type f -name "*.${urtotm_projeUrunUzantisi}" | head -1 | xargs)
 if [[ -z "$urun" ]]; then
     # artifacts dizininde bulunamadı, release dizininde ara...
-    urun=$(find "${urtotm_projeDizini}/build/release" -type f -name "*.${urtotm_urunUzantisi}" | head -1 | xargs)
+    urun=$(find "${urtotm_projeDizini}/build/release" -type f -name "*.${urtotm_projeUrunUzantisi}" | head -1 | xargs)
     # Burada da yoksa hata mesajı göster ve başarısız olarak çık
     if [[ -z "$urun" ]]; then
-        mesajGoster hata "$yayinlaBaslik" "Proje dizini içinde ${urtotm_urunUzantisi} dosyası bulunamadığından işlem sürdürülemiyor" &
+        mesajGoster hata "$yayinlaBaslik" "Proje dizini içinde ${urtotm_projeUrunUzantisi} dosyası bulunamadığından işlem sürdürülemiyor" &
         exit 1
     fi
 fi
