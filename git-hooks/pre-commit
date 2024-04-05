@@ -3,19 +3,44 @@ source etkilesim
 
 precommitBaslik="$urtotm_dialogBaslik - pre-commit"
 
-# İşlenen dosyalarda projeye ait çalıştırılabilir kodlar içerem kaynak dosyası varsa
+# Testleri çalıştırmadan önce Ceedling varlığını yokla
+if ! command -v ceedling &> /dev/null; then
+	mesajGoster hata "$precommitBaslik" \
+		"'Ceedling Test Seti' '$PATH' yollarında bulunamadığından
+		pre-commit kancası iptal oldu. Lütfen ceedling test setini
+		yükleyip yeniden deneyiniz."
+	exit 1
+fi
+
+# İşlenen dosyalarda projeye ait çalıştırılabilir kodlar içeren kaynak dosyası varsa
 # birim testlerini tetikle
 # diff-filter: A (Added), C (Copied), M (Modified)
-if git diff --cached --name-only --diff-filter=ACM | \
-	grep -e'.*\.c' -e'.*\.cpp' -e'.*\.cc' -e'.*\.h' -e'.*\.hpp' &> /dev/null; then
-	# Testleri çalıştırmadan önce Ceedling varlığını yokla
-	if ! command -v ceedling &> /dev/null; then
-		mesajGoster hata "$precommitBaslik" "'Ceedling Test Seti' '$PATH' yollarında bulunamadığından pre-commit kancası iptal oldu."
-		exit 1
-	fi
-	# Ceedling ile birim testlerini tetikle
-	ceedling clobber test:all
-	testSonucu=$?
-	echo Test sonucu $testSonucu
-	exit $testSonucu
+while read -r dsy; do
+	modul="$(basename -- "$dsy")" # Yolları at
+	modul="${modul%.*}" # uzantıyı da at
+	moduller+=("$modul")
+done < <(git diff --cached --name-only --diff-filter=ACM \
+							| grep -e'.*\.c' -e'.*\.cpp' -e'.*\.cc' -e'.*\.h' -e'.*\.hpp' \
+							| grep -v -e 'build' -e 'test')
+
+# Kopya modül adlarını ele ve sırala.
+# C projelerinde bir modül genelde bir modul.h başlık dosyası ve bir
+# modul.c kaynak dosyası çiftinden oluşur. Bu yüzden modül adları elde
+# edilirken hem başlık hem de kaynak için listede modül başına iki girdi
+# olacaktır. Aşağıdaki komut satırı bu kopya modül adlarını eler.
+read -ra moduller < <(echo "${moduller[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' ')
+
+if [[ "${#moduller[@]}" -ge 1 ]]; then
+	for modul in "${moduller[@]}"; do
+		echo "Test edilecek modül: $modul"
+		# Ceedling ile birim testlerini tetikle
+		ceedling test:"$modul"
+		testSonucu=$?
+		echo "Test sonucu: $testSonucu"
+		if [[ ! "$testSonucu" ]]; then
+			# Herhangi bir testin sonucu başarısız olursa iptal et
+			break
+		fi
+	done
+	exit "$testSonucu"
 fi
