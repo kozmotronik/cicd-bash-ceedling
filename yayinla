@@ -18,11 +18,11 @@ if [ ! -d "$urunlerDizini" ]; then
 fi
 
 if [ ! -d "$surumlerDizini" ]; then
-    mkdir -p "$surumlerDizini" # ürünler dizini yoksa yarat
+    mkdir -p "$surumlerDizini" # sürümler dizini yoksa yarat
 fi
 
 if [ ! -d "$ensonSurumDizini" ]; then
-    mkdir -p "$ensonSurumDizini" # ürünler dizini yoksa yarat
+    mkdir -p "$ensonSurumDizini" # enson sürüm dizini yoksa yarat
 fi
 
 # Önceki derleme kalıntılarından temizle ve son ürün üretim sürecini çalıştır
@@ -36,16 +36,30 @@ fi
 # verilmişse doxygen'in mutlaka Doxyfile dosyasının bulunduğu dizinden çalışması gerekir.
 # Aksi takdirde göreceli INPUT hedeflerini bulamaz ve eksik bir belgelendirme üretir.
 belgelendirmeCiktiDizini="${surumlerDizini}/belgelendirme"
+if [[ ! -e "$belgelendirmeCiktiDizini" || ! -d "$belgelendirmeCiktiDizini" ]]; then
+    mkdir -p "$belgelendirmeCiktiDizini"
+fi
+
 if command -v doxygen &> /dev/null; then
-    doxyfile=$(find "$urtotm_projeCiktiDizini" -type f -name Doxyfile | head -1)
+    # Doxyfile dosyasını önce proje dizininde ara
+    doxyfile=$(find "$urtotm_projeDizini" -type f -name Doxyfile | head -1)
+    if [[ -z "$doxyfile" ]]; then
+        # Proje diziinde bulunamadı, birde çıktı dizininde ara
+        doxyfile=$(find "$urtotm_projeCiktiDizini" -type f -name Doxyfile | head -1)
+    fi
     if [[ -z "$doxyfile" ]]; then
         # Doxyfile yok üretilsin mi?
         if ! evetHayirGoster "$yayinlaBaslik" "Doxygen belgelendirmesi için bir yapılandırma dosyası bulunamadı, üretilsin mi?"
         then
-            while [[ -z "$doxyfile" ]]; do
-                if doxyDizin=$(dizinAl "$yayinlaBaslik"); then
-                    doxyfileDizini="$doxyDizin"
-                    doxyfile="$doxyDizin/Doxyfile"
+            deneme=3
+            while [[ "$deneme" -gt 0 ]]; do # TODO burayı iyileştir, döngüyü sınırla
+                if doxyfileDizini=$(dizinAl "$yayinlaBaslik"); then
+                    if [[ ! -e "$doxyfileDizini" || ! -d "$doxyfileDizini" ]]; then
+                        mesajGoster hata "$yayinlaBaslik" "Lütfen geçerli bir dizin seçiniz."
+                        ((--deneme))
+                        continue
+                    fi
+                    doxyfile="$doxyfileDizini/Doxyfile"
                     pushd "$doxyfileDizini"
                     SURUM="$1" CIKTI="$belgelendirmeCiktiDizini" doxygen -qg "$doxyfile" >& /dev/null
                     popd
@@ -125,6 +139,6 @@ fi
 # genişletilmeyecektir. Dolayısıyla rm komutu '*' adında bir dosya bulamayacağından hiçbir şey
 # silmez. Bu nedenle '*' wildcard olarak kullanılmak isteniyorsa, tırnak içine alınmamalıdır.
 rm -f "$ensonSurumDizini/"*
-urunAdi="${urtotm_projeAdi}-${1}-$(date +"%Y%m%d%H%M%S").hex"
+urunAdi="${urtotm_projeAdi}-${1}-$(date +"%Y%m%d%H%M%S").${urtotm_projeUrunUzantisi}"
 # ürünü hem ürünler hem de ensonsürüm dizinlerine kopyala
 tee "${urunlerDizini}/${urunAdi}" "${ensonSurumDizini}/${urunAdi}" < "$urun" >& /dev/null
