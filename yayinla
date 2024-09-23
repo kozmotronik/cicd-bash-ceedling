@@ -26,10 +26,19 @@ if [ ! -d "$ensonSurumDizini" ]; then
 fi
 
 # Önceki derleme kalıntılarından temizle ve son ürün üretim sürecini çalıştır
-if ! ceedling clobber project:release release; then
-    echo "Son ürün üretim işlemi başarısız... Ceedling kurulumunu veya yapılandırmasını kontrol ediniz." &
+if ! ceedling clobber; then
+    mesajGoster hata "$yayinlaBaslik" "Son ürün üretim işlemi başarısız... Ceedling kurulumunu veya yapılandırmasını kontrol ediniz." &
     exit 1 # Son ürün üretimi başarısızsa işlemi sürdürme
 fi
+
+# Üretim sürecini çalıştır
+# Varsa, release ile başlayan tüm türevler için üretim yap
+while IFS=  read -r -d $'\0'; do
+    if ! ceedling clean --project="$REPLY" release; then
+        mesajGoster hata "$yayinlaBaslik" "Uygulama $REPLY yapılandırması için derlenirken bir hata oluştu!" &
+        exit 1
+    fi
+done < <(find . -name "release*.yml" -type f -print0)
 
 # Doxygen belgelendirmesi üret.
 # ATTENTION (Dikkat) Doxyfile Doxygen yapılandırma dosyasında girdi hedefleri göreceli
@@ -44,7 +53,7 @@ if command -v doxygen &> /dev/null; then
     # Doxyfile dosyasını önce proje dizininde ara
     doxyfile=$(find "$urtotm_projeDizini" -type f -name Doxyfile | head -1)
     if [[ -z "$doxyfile" ]]; then
-        # Proje diziinde bulunamadı, birde çıktı dizininde ara
+        # Proje dizininde bulunamadı, bir de çıktı dizininde ara
         doxyfile=$(find "$urtotm_projeCiktiDizini" -type f -name Doxyfile | head -1)
     fi
     if [[ -z "$doxyfile" ]]; then
@@ -52,7 +61,7 @@ if command -v doxygen &> /dev/null; then
         if ! evetHayirGoster "$yayinlaBaslik" "Doxygen belgelendirmesi için bir yapılandırma dosyası bulunamadı, üretilsin mi?"
         then
             deneme=3
-            while [[ "$deneme" -gt 0 ]]; do # TODO burayı iyileştir, döngüyü sınırla
+            while [[ "$deneme" -gt 0 ]]; do
                 if doxyfileDizini=$(dizinAl "$yayinlaBaslik"); then
                     if [[ ! -e "$doxyfileDizini" || ! -d "$doxyfileDizini" ]]; then
                         mesajGoster hata "$yayinlaBaslik" "Lütfen geçerli bir dizin seçiniz."
@@ -124,13 +133,8 @@ fi
 # Son ürünü önce artifacts dizininde ara...
 urun=$(find "${urtotm_projeDizini}/build/artifacts" -type f -name "*.${urtotm_projeUrunUzantisi}" | head -1 | xargs)
 if [[ -z "$urun" ]]; then
-    # artifacts dizininde bulunamadı, release dizininde ara...
-    urun=$(find "${urtotm_projeDizini}/build/release" -type f -name "*.${urtotm_projeUrunUzantisi}" | head -1 | xargs)
-    # Burada da yoksa hata mesajı göster ve başarısız olarak çık
-    if [[ -z "$urun" ]]; then
-        mesajGoster hata "$yayinlaBaslik" "Proje dizini içinde ${urtotm_projeUrunUzantisi} dosyası bulunamadığından işlem sürdürülemiyor" &
-        exit 1
-    fi
+    mesajGoster hata "$yayinlaBaslik" "Proje dizini içinde ${urtotm_projeUrunUzantisi} dosyası bulunamadığından işlem sürdürülemiyor" &
+    exit 1
 fi
 
 # ensonsürüm dizninde ne varsa temizle ve son sürümü kopyala
@@ -139,6 +143,15 @@ fi
 # genişletilmeyecektir. Dolayısıyla rm komutu '*' adında bir dosya bulamayacağından hiçbir şey
 # silmez. Bu nedenle '*' wildcard olarak kullanılmak isteniyorsa, tırnak içine alınmamalıdır.
 rm -f "$ensonSurumDizini/"*
-urunAdi="${urtotm_projeAdi}-${1}-$(date +"%Y%m%d%H%M%S").${urtotm_projeUrunUzantisi}"
-# ürünü hem ürünler hem de ensonsürüm dizinlerine kopyala
-tee "${urunlerDizini}/${urunAdi}" "${ensonSurumDizini}/${urunAdi}" < "$urun" >& /dev/null
+
+# Ürünler dizininde ilgili sürümün dizini yoksa oluştur
+uretimSurumDizini="${urunlerDizini}/${1}"
+mkdir -p "$uretimSurumDizini"
+
+# Buraya kadar ulaştıysak ürün veya ürünler var demek
+while IFS=  read -r -d $'\0'; do
+    urun=$(basename "$REPLY" "$urtotm_projeUrunUzantisi")
+    urunAdi="${urun}-${1}.${urtotm_projeUrunUzantisi}"
+    # ürünü hem ürünler hem de ensonsürüm dizinlerine kopyala
+    tee "${uretimSurumDizini}/${urunAdi}" "${ensonSurumDizini}/${urunAdi}" < "$REPLY" >& /dev/null
+done < <(find "${urtotm_projeDizini}/build/artifacts" -type f -name "*.${urtotm_projeUrunUzantisi}" -print0)
