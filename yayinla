@@ -27,7 +27,7 @@ fi
 
 # Önceki derleme kalıntılarından temizle ve son ürün üretim sürecini çalıştır
 if ! ceedling clobber project:release release; then
-    echo "Son ürün üretim işlemi başarısız... Ceedling yapılandırmasını kontrol ediniz." &
+    echo "Son ürün üretim işlemi başarısız... Ceedling kurulumunu veya yapılandırmasını kontrol ediniz." &
     exit 1 # Son ürün üretimi başarısızsa işlemi sürdürme
 fi
 
